@@ -1,5 +1,5 @@
 ---
-title: "presentation"
+title: "Analisi di una Rete di Interazioni Proteina-Proteina"
 author: "Lara Vignotto"
 date: "2022-08-06"
 output: html_document
@@ -9,22 +9,95 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+```{r warning=FALSE, error=FALSE, echo=F, show=F, include=F}
+library(igraph)
+library(tidyr)
+library(dplyr)
+library(ggraph)
+library(tidygraph)
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+myblue <- "#5d95c6"
+myblue2 <- "#4b89bf"
 ```
 
-## Including Plots
+## Introduzione
+Le reti di interazione proteina-proteina (protein-protein interaction networks, o PPNIs) rappresentano attraverso dei grafi i contatti fisici tra proteine in una cellula. Sono utilizzate per:
 
-You can also embed plots, for example:
+* differenziare la fisiologia cellulare tra stati normali e stati di malattia
+* raffinare i passaggi di pathway (vie) metabolici
+* riconoscere il ruolo di proteine non caratterizzate
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+Date le limitazioni delle tecniche di rilevamento di interazioni proteina-proteina, i dataset disponibili sono incompleti e "rumorosi".
+
+
+## Dataset
+Il [dataset](http://yfgdb.princeton.edu/cgi-bin/display.cgi?id=10688190&db=pmid) ([Uetz p., *et al.* (2000)](https://www.nature.com/articles/35001009)) si riferisce all'insieme proteine e interazioni tra esse all'interno di cellule di *S. cerevisiae*, o lievito di birra. È composto da 927 nodi (proteine) e 875 archi (interazioni).
+
+Le PPNIs posseggono le seguenti proprietà:
+
+* effetto *small world*
+* sono reti *scale-free*
+* modularità
+
+È vero che anche questa rete presenta tali proprietà? Qual è il loro significato biologico? Si possono apprezzare altre caratteristiche?
+
+
+
+## Import del Dataset
+```{r, echo=FALSE}
+# load dataset
+file <- "http://yfgdb.princeton.edu/DBXREF/yfgdb/10688190id650/biogrid10688190id650.tab.txt"
+yeast_interactome <- read.csv(file = file, 
+                              header = FALSE,
+                              sep = "\t",
+                              col.names = c("INTERACTOR_A", "INTERACTOR_B", "OFFICIAL_SYMBOL_FOR_A", "OFFICIAL_SYMBOL_FOR_B", "ALIASES_FOR_A", "ALIASES_FOR_B", "EXPERIMENTAL_SYSTEM", "SOURCE", "PUBMED_ID", "ORGANISM_A_ID", "ORGANISM_B_ID"))
+# head(yeast_interactome)
+
+yeast_node_interactions <- yeast_interactome %>%
+  select(INTERACTOR_A, INTERACTOR_B)
+# summary(yeast_node_interactions)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r, echo=FALSE, fig.height = 10, fig.width = 14, fig.align = "center"}
+yeast_graph <- as_tbl_graph(yeast_node_interactions, directed = FALSE)
+# yeast_graph
+
+# plot graph
+set_graph_style(family = "sans")
+ggraph(yeast_graph, 
+       layout = "stress",
+       # layout = "igraph",
+       # algorithm = "nicely"
+       ) +
+  geom_edge_link(colour = myblue) +
+  geom_node_point(colour = "black", 
+                  shape = 21, 
+                  size = 2)
+```
+
+TODO Componente connessa più grande:
+```{r, echo=FALSE}
+# select biggest subgraph
+components <- igraph::clusters(yeast_graph, mode="weak")
+biggest_cluster_id <- which.max(components$csize)
+# ids
+vert_ids <- V(yeast_graph)[components$membership == biggest_cluster_id]
+# subgraph
+yeast_graph2 <- igraph::induced_subgraph(yeast_graph, vert_ids)
+```
+
+```{r, echo=FALSE, fig.height = 6, fig.width = 8, fig.align = "center"}
+# plot graph
+set_graph_style(family = "sans")
+ggraph(yeast_graph2, 
+       layout = "stress",
+       # layout = "igraph",
+       # algorithm = "nicely"
+       ) +
+  geom_edge_link(colour = myblue,
+                 linejoin = "bevel") +
+  geom_node_point(colour = "black", 
+                  shape = 21, 
+                  size = 1.6)
+```
