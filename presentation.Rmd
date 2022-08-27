@@ -10,15 +10,16 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r warning=FALSE, error=FALSE, echo=F, show=F, include=F}
+# library(graph)
 library(igraph)
 library(tidyr)
 library(dplyr)
 library(ggraph)
 library(tidygraph)
 
-myblue <- "#5d95c6"
-myblue2 <- "#4b89bf"
+myblue <- "#4b89bf" #"#5d95c6"
 ```
+
 
 ## Introduzione
 Le reti di interazione proteina-proteina (protein-protein interaction networks, o PPNIs) rappresentano attraverso dei grafi i contatti fisici tra proteine in una cellula. Sono utilizzate per:
@@ -42,8 +43,7 @@ Le PPNIs posseggono le seguenti proprietà:
 È vero che anche questa rete presenta tali proprietà? Qual è il loro significato biologico? Si possono apprezzare altre caratteristiche?
 
 
-
-## Import del Dataset
+## Import del dataset
 ```{r, echo=FALSE}
 # load dataset
 file <- "http://yfgdb.princeton.edu/DBXREF/yfgdb/10688190id650/biogrid10688190id650.tab.txt"
@@ -58,9 +58,9 @@ yeast_node_interactions <- yeast_interactome %>%
 # summary(yeast_node_interactions)
 ```
 
-
 ```{r, echo=FALSE, fig.height = 10, fig.width = 14, fig.align = "center"}
-yeast_graph <- as_tbl_graph(yeast_node_interactions, directed = FALSE)
+yeast_graph <- as_tbl_graph(yeast_node_interactions, 
+                            directed = FALSE)
 # yeast_graph
 
 # plot graph
@@ -70,34 +70,257 @@ ggraph(yeast_graph,
        # layout = "igraph",
        # algorithm = "nicely"
        ) +
-  geom_edge_link(colour = myblue) +
-  geom_node_point(colour = "black", 
-                  shape = 21, 
+  geom_edge_link(colour = "gray") +
+  geom_node_point(colour = "black",
+                  fill = myblue,
+                  shape = 21,
                   size = 2)
 ```
 
 TODO Componente connessa più grande:
 ```{r, echo=FALSE}
 # select biggest subgraph
-components <- igraph::clusters(yeast_graph, mode="weak")
+components <- clusters(yeast_graph, mode="weak")
 biggest_cluster_id <- which.max(components$csize)
 # ids
 vert_ids <- V(yeast_graph)[components$membership == biggest_cluster_id]
 # subgraph
-yeast_graph2 <- igraph::induced_subgraph(yeast_graph, vert_ids)
+yeast_graph2 <- subgraph(graph = yeast_graph, 
+                         vids = vert_ids)
+yeast_graph2 <- as_tbl_graph(yeast_graph2, 
+                             directed = FALSE)
 ```
 
 ```{r, echo=FALSE, fig.height = 6, fig.width = 8, fig.align = "center"}
 # plot graph
 set_graph_style(family = "sans")
 ggraph(yeast_graph2, 
-       layout = "stress",
-       # layout = "igraph",
-       # algorithm = "nicely"
-       ) +
-  geom_edge_link(colour = myblue,
+       layout = "stress") +
+  geom_edge_link(colour = "gray",
                  linejoin = "bevel") +
-  geom_node_point(colour = "black", 
-                  shape = 21, 
-                  size = 1.6)
+  geom_node_point(colour = "black",
+                  fill = myblue,
+                  shape = 21,
+                  size = 1.8)
 ```
+
+
+## Analisi delle centralità
+TODO
+
+### Degree centrality
+TODO
+```{r, echo=FALSE}
+# calculate degrees of nodes
+degree_centrality <- degree(yeast_graph2)
+```
+
+TODO I nodi con maggiore e minore numero di vicini.
+```{r,echo=FALSE}
+# sort the degrees
+head(sort(degree_centrality, decreasing = TRUE))
+tail(sort(degree_centrality, decreasing = TRUE))
+```
+
+TODO Il grado medio dei nodi. 
+```{r,echo=FALSE}
+# sort the degrees
+mean(degree_centrality)
+```
+
+TODO La distribuzione dei gradi nel grafo.
+```{r,echo=FALSE}
+table(degree_centrality)
+hist(degree_centrality,
+     right = FALSE,
+     main = "Degree distribution",
+     xlab = "degree",
+     ylab = "frequency",
+     breaks = max(degree_centrality),
+     col = "gray")
+abline(v = mean(degree_centrality), 
+       col = myblue, 
+       lty = 3,
+       lwd = 3)
+legend(x = 13,
+       y = 195,
+       legend = c("average degree"),
+       col = c(myblue),
+       lty = 3,
+       lwd = 3)
+```
+
+TODO Gli *hub* e i nodi vicini.
+```{r,echo=FALSE}
+# tail(sort(degree_centrality), 5)
+# degree_centrality[degree_centrality >= 10]
+```
+
+```{r, echo=FALSE, fig.height = 8, fig.width = 10, fig.align = "center"}
+# plot graph
+set_graph_style(family = "sans")
+yeast_graph2 %>%
+  activate(nodes) %>%
+  mutate(degree = centrality_degree()) %>%
+  ggraph(layout = "stress") +
+  geom_edge_link(colour = "gray",
+                 linejoin = "bevel") +
+  geom_node_point(aes(size = degree,
+                      colour = degree)) +
+  geom_node_label(aes(filter = degree>=10,
+                      label = name),
+                  size = 3,
+                  show.legend = FALSE,
+                  # colour = "white",
+                  repel = TRUE,
+                  force = 20,
+                  force_pull = -20)
+  # scale_size(range = c(1, 10))
+```
+
+```{r,echo=FALSE}
+# # top 3 nodes with highest degree centrality
+# head(sort(degree_centrality, decreasing = TRUE), 3)
+# YML064C_adjacent <- adjacent_vertices(yeast_graph2, "YML064C")
+# # https://fungidb.org/fungidb/app/record/gene/YML064C#CompoundsMetabolicPathways
+# file2 <- "datasets/fungidb_YML064C_interactions.txt"
+# YML064C_interactions_all <- read.csv(file = file2, 
+#                                  header = TRUE,
+#                                  sep = "\t")
+# # head(YML064C_interactions_all)
+# YML064C_interactions <- YML064C_interactions_all %>%
+#   select(Interacts.With) %>%
+#   as.list(YML064C_interactions)
+# head(YML064C_interactions)
+```
+
+TODO (dis)assortativity.
+```{r,echo=FALSE}
+# assortativity by degree
+edge <- as_edgelist(yeast_graph2)
+l <- c(edge[,1], edge[,2])
+r <- c(edge[,2], edge[,1])
+dl <- degree_centrality[l]
+dr <- degree_centrality[r]
+cor(dl, dr)
+```
+
+```{r, echo=FALSE}
+# top 3 nodes with highest degree centrality
+top_3_degree <- head(sort(degree_centrality, decreasing = TRUE), 3)
+
+for (protein in names(top_3_degree)){
+  ajacent_nodes <- adjacent_vertices(yeast_graph2, protein)
+  print(protein)
+  for (node in adjacent_vertices(yeast_graph2, protein)){
+    print(degree_centrality[node])
+  }
+}
+```
+
+
+### Betweenness centrality
+
+TODO
+```{r, echo=FALSE}
+# calculate betweenness of nodes
+betweenness_centrality <- betweenness(yeast_graph2)
+```
+
+TODO I nodi con maggiore e minore betweenness.
+```{r,echo=FALSE}
+# sort
+head(sort(betweenness_centrality, decreasing = TRUE))
+tail(sort(betweenness_centrality, decreasing = TRUE))
+```
+
+TODO Grafico.
+```{r, echo=FALSE, fig.height = 8, fig.width = 10, fig.align = "center"}
+# plot graph
+set_graph_style(family = "sans")
+yeast_graph2 %>%
+  activate(nodes) %>%
+  mutate(betweenness = centrality_betweenness()) %>%
+  ggraph(layout = "stress") +
+  geom_edge_link(colour = "gray",
+                 linejoin = "bevel") +
+  geom_node_point(aes(size = betweenness,
+                      colour = betweenness)) +
+  geom_node_label(aes(filter = betweenness>=10000,
+                      label = name),
+                  size = 3,
+                  show.legend = FALSE,
+                  repel = TRUE,
+                  force = 20,
+                  force_pull = -20)
+```
+
+
+## Topologia della rete
+
+TODO
+
+### Scale-free
+
+TODO Abbiamo già visto la distribuzione dei gradi nel grafo.
+```{r,echo=FALSE}
+hist(degree_centrality,
+     right = FALSE,
+     main = "Degree distribution",
+     xlab = "degree",
+     ylab = "frequency",
+     breaks = max(degree_centrality),
+     col = "gray")
+```
+
+TODO
+```{r,echo=FALSE}
+degree_dist_non_cumul <- degree_distribution(yeast_graph2,
+                                             cumulative = FALSE)
+plot(1:max(degree_centrality),
+     degree_dist_non_cumul[-1],
+     main = "Degree distribution (log, non-cumulative)",
+     xlab = "degree",
+     ylab = "probability",
+     log = "xy")
+
+# fit a power law distribution to the degree distribution
+pow_law <- power.law.fit(degree_centrality)
+lines(seq(degree_dist_non_cumul), 
+      seq(degree_dist_non_cumul)^-(pow_law$alpha-1), 
+      col = myblue,
+      lwd = 2)
+
+legend(x = 8,
+       y = .5,
+       legend = c("fitted power law"),
+       col = c(myblue),
+       lwd = 2)
+
+##########
+degree_dist_cumul <- degree_distribution(yeast_graph2,
+                                         cumulative = TRUE)
+plot(1:max(degree_centrality),
+     degree_dist_cumul[-1],
+     main = "Degree distribution (log, cumulative)",
+     xlab = "degree",
+     ylab = "probability",
+     log = "xy")
+
+# fit a power law distribution to the degree distribution
+pow_law <- power.law.fit(degree_centrality)
+lines(seq(degree_dist_cumul), 
+      seq(degree_dist_cumul)^-(pow_law$alpha-1), 
+      col = myblue,
+      lwd = 2)
+
+legend(x = 8,
+       y = 1,
+       legend = c("fitted power law"),
+       col = c(myblue),
+       lwd = 2)
+```
+
+
+
+
