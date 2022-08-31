@@ -1,0 +1,41 @@
+Gene ID	Transcript	Interacts With	Gene Was	Product	Times Observed	Times Reproduced	Baits Interacting with Found Gene	Prey Interacting with Found Gene
+YML064C	YML064C	YBR072W	bait	chaperone protein HSP26	1	1	N/A	5
+YML064C	YML064C	YBR137W	bait	hypothetical protein	1	1	N/A	4
+YML064C	YML064C	YBR171W	bait	Sec63 complex subunit SEC66	1	1	N/A	1
+YML064C	YML064C	YBR176W	bait	3-methyl-2-oxobutanoate hydroxymethyltransferase	1	1	N/A	5
+YML064C	YML064C	YDL246C	bait	L-iditol 2-dehydrogenase SOR2	1	1	N/A	5
+YML064C	YML064C	YDR110W	bait	replication fork barrier binding protein FOB1	1	1	N/A	13
+YML064C	YML064C	YDR174W	bait	Hmo1p	1	1	N/A	10
+YML064C	YML064C	YEL015W	bait	Edc3p	1	1	N/A	13
+YML064C	YML064C	YEL066W	bait	D-amino-acid N-acetyltransferase	1	1	N/A	4
+YML064C	YML064C	YER179W	bait	recombinase DMC1	1	1	N/A	4
+YML064C	YML064C	YFR028C	prey	phosphoprotein phosphatase CDC14	1	1	12	N/A
+YML064C	YML064C	YGL040C	bait	porphobilinogen synthase HEM2	1	1	N/A	3
+YML064C	YML064C	YGL221C	bait	hypothetical protein	1	1	N/A	4
+YML064C	YML064C	YHR025W	bait	homoserine kinase	1	1	N/A	3
+YML064C	YML064C	YHR113W	bait	aspartyl aminopeptidase	1	1	N/A	15
+YML064C	YML064C	YHR198C	bait	Aim18p	1	1	N/A	2
+YML064C	YML064C	YJL058C	bait	Bit61p	1	1	N/A	7
+YML064C	YML064C	YJL218W	bait	acetyltransferase	1	1	N/A	8
+YML064C	YML064C	YJR053W	prey	Bfa1p	1	1	2	N/A
+YML064C	YML064C	YJR056C	bait	hypothetical protein	1	1	N/A	6
+YML064C	YML064C	YJR131W	bait	mannosyl-oligosaccharide 1,2-alpha-mannosidase	1	1	N/A	2
+YML064C	YML064C	YJR159W	bait	L-iditol 2-dehydrogenase SOR1	1	1	N/A	5
+YML064C	YML064C	YKL008C	bait	sphingosine N-acyltransferase LAC1	1	1	N/A	3
+YML064C	YML064C	YKL035W	bait	UTP glucose-1-phosphate uridylyltransferase	1	1	N/A	2
+YML064C	YML064C	YKL067W	bait	nucleoside diphosphate kinase	1	1	N/A	4
+YML064C	YML064C	YKL103C	bait	metalloaminopeptidase APE1	1	1	N/A	18
+YML064C	YML064C	YLR284C	bait	dodecenoyl-CoA isomerase	1	1	N/A	4
+YML064C	YML064C	YLR328W	bait	nicotinamide-nucleotide adenylyltransferase NMA1	2	2	N/A	6
+YML064C	YML064C	YLR377C	bait	fructose 1,6-bisphosphate 1-phosphatase	1	1	N/A	5
+YML064C	YML064C	YLR423C	bait	protein kinase regulatory subunit ATG17	2	2	N/A	90
+YML064C	YML064C	YNL044W	bait	Yip3p	1	1	N/A	23
+YML064C	YML064C	YNL218W	bait	ssDNA-dependent ATPase MGS1	1	1	N/A	6
+YML064C	YML064C	YNL333W	bait	pyridoxine biosynthesis protein SNZ2	1	1	N/A	10
+YML064C	YML064C	YOR020C	bait	Hsp10p	2	2	N/A	6
+YML064C	YML064C	YOR229W	bait	transcriptional modulator	1	1	N/A	11
+YML064C	YML064C	YOR284W	bait	Hua2p	2	2	N/A	21
+YML064C	YML064C	YPL049C	bait	Dig1p	2	2	N/A	35
+YML064C	YML064C	YPL111W	bait	arginase	1	1	N/A	4
+YML064C	YML064C	YPL192C	bait	pheromone-regulated protein PRM3	1	1	N/A	4
+YML064C	YML064C	YPR182W	bait	mRNA splicing protein SMX3	1	1	N/A	4
