@@ -2,13 +2,6 @@
 title: "Analisi di una Rete di Interazioni Proteina-Proteina"
 author: "Lara Vignotto"
 output: html_document
-# output: ioslides_presentation
-#     css: ./style.css
-#     # css: scrollable_slides.css
-#     # incremental: yes
-#   slidy_presentation: default
-# # editor_options: 
-# #   chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
@@ -16,7 +9,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r warning=FALSE, error=FALSE, echo=F, show=F, include=F}
-# library(graph)
 library(igraph)
 library(tidyr)
 library(dplyr)
@@ -27,7 +19,9 @@ myblue <- "#4b89bf" #"#5d95c6"
 ```
 
 
+
 ## Introduzione
+
 Le reti di interazione proteina-proteina (protein-protein interaction networks, o PPNIs) rappresentano attraverso dei grafi i contatti fisici tra proteine in una cellula. Sono utilizzate per:
 
 * differenziare la fisiologia cellulare tra stati normali e stati di malattia
@@ -35,6 +29,7 @@ Le reti di interazione proteina-proteina (protein-protein interaction networks, 
 * riconoscere il ruolo di proteine non caratterizzate
 
 Date le limitazioni delle tecniche di rilevamento di interazioni proteina-proteina, i dataset disponibili sono incompleti e "rumorosi".
+
 
 
 ## Dataset
@@ -45,7 +40,9 @@ Il [dataset](http://yfgdb.princeton.edu/cgi-bin/display.cgi?id=10688190&db=pmid)
 * Si possono apprezzare altre caratteristiche?
 
 
+
 ## Import del dataset
+
 ```{r, echo=FALSE}
 # load dataset
 file <- "http://yfgdb.princeton.edu/DBXREF/yfgdb/10688190id650/biogrid10688190id650.tab.txt"
@@ -82,7 +79,9 @@ ggraph(yeast_graph,
 ```
 
 
+
 ## Componente gigante
+
 ```{r, echo=FALSE}
 # select biggest subgraph
 components <- clusters(yeast_graph, mode="weak")
@@ -122,7 +121,9 @@ gorder(yeast_graph2)
 TODO: considerazioni
 
 
+
 ## Degree centrality
+
 TODO: perché
 ```{r, echo=FALSE}
 # calculate degrees of nodes
@@ -231,6 +232,7 @@ head(sort(degree_centrality, decreasing = TRUE), 3)
 TODO: considerazioni
 
 
+
 ## Rete *scale-free*
 
 La skewness della distribuzione dei gradi è:
@@ -238,12 +240,10 @@ La skewness della distribuzione dei gradi è:
 mean((degree_centrality - mean(degree_centrality))^3) / sd(degree_centrality)^3
 ```
 
-
 La media e la mediana della distribuzione sono:
 ```{r, echo=FALSE}
 summary(degree_centrality)
 ```
-
 
 Istogramma della distribuzione dei gradi nel grafo:
 ```{r, echo=FALSE, fig.align = "center"}
@@ -276,10 +276,11 @@ degree_dist_non_cumul <- degree_distribution(yeast_graph2,
                                              cumulative = FALSE)
 plot(1:max(degree_centrality),
      degree_dist_non_cumul[-1],
-     main = "Degree distribution (log, non-cumulative)",
+     main = "Degree distribution (non-cumulative, log-log scale)",
      xlab = "degree",
      ylab = "probability",
      # type = "l",
+     pch = 19,
      log = "xy")
 # fit a power law distribution to the data
 pow_law <- power.law.fit(degree_centrality)
@@ -305,9 +306,30 @@ Adattando (*fitting*) una power law alla distribuzione, si ottiene una retta (bl
 ```{r, echo=FALSE}
 pow_law$alpha
 ```
+
 Mentre, applicando una semplice regressione lineare sui dati, si ottiene un'altra retta (grigia) la cui intercetta è:
 ```{r, echo=FALSE}
 coef( lm(log(y)~log(x)) )[2]
+```
+
+Grafico non logaritmico della distribuzione dei gradi e della legge di potenza adattata ai dati:
+```{r, echo=FALSE, fig.align = "center"}
+plot(1:max(degree_centrality),
+     degree_dist_non_cumul[-1], 
+     type = "l",
+     main = "Degree distribution (non-cumulative) and fitted power law",
+     xlab = "degree",
+     ylab = "probability",
+     lwd = 2)
+lines(seq(degree_dist_non_cumul),
+      seq(degree_dist_non_cumul)^-(pow_law$alpha-1), 
+      col = myblue,
+      lwd = 2)
+legend(x = 13.5,
+       y = .5,
+       legend = c("degree distribution", "fitted power law"),
+       col = c("black", myblue),
+       lwd = c(2, 2))
 ```
 
 Funzione di distribuzione dei gradi, cumulativa:
@@ -316,12 +338,12 @@ degree_dist_cumul <- degree_distribution(yeast_graph2,
                                          cumulative = TRUE)
 plot(1:max(degree_centrality),
      degree_dist_cumul[-1],
-     main = "Degree distribution (log, cumulative)",
+     main = "Degree distribution (cumulative, log-log scale)",
      xlab = "degree",
-     ylab = "probability",
+     ylab = "probability (cumulative)",
      type = "l",
      log = "xy",
-     lwd = 1.5)
+     lwd = 2)
 # lines(seq(degree_dist_cumul), 
 #       seq(degree_dist_cumul)^-(pow_law$alpha-1), 
 #       col = myblue,
@@ -337,7 +359,38 @@ plot(1:max(degree_centrality),
 #        col = c(myblue),
 #        lwd = 2)
 ```
+
 TODO: considerazioni
+
+
+
+## (Dis)assortatività
+
+Si calcola il grado di assortatività della rete:
+```{r, echo=FALSE}
+assortativity_degree(yeast_graph2,
+                     directed = FALSE)
+```
+
+Il valore negativo indica che c'è disassortatività. Se si controlla il grado dei nodi collegati direttamente ai 3 nodi con grado maggiore, si può notare come essi abbiano un grado piuttosto basso:
+```{r, echo=FALSE}
+# top 3 nodes with highest degree centrality
+top_3_degree <- head(sort(degree_centrality, decreasing = TRUE), 3)
+top_3_degree
+
+for (protein in names(top_3_degree)){
+  ajacent_nodes <- adjacent_vertices(yeast_graph2, protein)
+  print(protein)
+  for (node in adjacent_vertices(yeast_graph2, protein)){
+    print(degree_centrality[node])
+  }
+}
+```
+
+Nelle PPINs i nodi con grado più alto sono raramente collegati ad altri nodi con grado alto. [Questo fenomeno](https://cse.buffalo.edu/DBGROUP/bioinformatics/papers/chuan.pdf) è in contrasto con ciò che accade nelle reti sociali. 
+
+TODO: considerazioni
+
 
 
 ## Effetto *small world*
@@ -361,8 +414,7 @@ diameter(yeast_graph2)
 ```
 
 Grafici.
-```{r, echo=FALSE, fig.height = 10, fig.width = 14, fig.align = "center"}
-# plot
+```{r, echo=FALSE, fig.height = 10, fig.width = 12, fig.align = "center"}
 d <- get_diameter(yeast_graph2, directed=FALSE)
 V(yeast_graph2)$color = "white"
 E(yeast_graph2)$color = "grey"
@@ -377,7 +429,6 @@ plot(yeast_graph2,
 ```
 
 ```{r, echo=FALSE, fig.align = "center"}
-# frequency
 paths <- distance_table(yeast_graph2)$res
 names(paths) <- 1:length(paths)
 
@@ -397,5 +448,230 @@ legend(x = 15,
        lwd = 3)
 ```
 
+Cammini geodetici dal nodo con più alto grado *YML064C* a tutti i nodi con grado 1.
+```{r, echo=FALSE}
+# index of the "from" node (YML064C)
+node_idx = as.numeric(V(yeast_graph2)["YML064C"])
+# indices of the "to" nodes (nodes with degree = 1)
+nodes_degree_1_names <- names(degree_centrality[degree_centrality == 1])
+nodes_degree_1_idx <- as.numeric(V(yeast_graph2)[nodes_degree_1_names])
+# shortest paths from node "from" to each one of nodes "to"
+shortest_paths_from_node <- shortest_paths(yeast_graph2,
+                                           from = node_idx,
+                                           to = nodes_degree_1_idx)
+# find the longest shortest path
+len_max_shortest_path <- -1
+for (my_path in shortest_paths_from_node$vpath) {
+  curr_len <- length(my_path)
+  if (curr_len > len_max_shortest_path) {
+    max_shortest_path <- my_path
+    len_max_shortest_path <- curr_len
+  }
+}
+max_shortest_path
+```
+
+```{r, echo=FALSE, fig.height = 10, fig.width = 12, fig.align = "center"}
+# base
+V(yeast_graph2)$color = "white"
+E(yeast_graph2)$color = "grey"
+E(yeast_graph2)$width = 1
+# shortest paths
+for (i in shortest_paths_from_node$vpath) {
+  E(yeast_graph2, path=i)$color = myblue#"black"
+  E(yeast_graph2, path=i)$width = 1.5
+  V(yeast_graph2)[i]$color = myblue#"gray"
+}
+# longest shortest path
+E(yeast_graph2, path=max_shortest_path)$color = "black"#myblue
+E(yeast_graph2, path=max_shortest_path)$width = 4
+V(yeast_graph2)[max_shortest_path]$color = "black"#myblue
+# "from" node
+V(yeast_graph2)[node_idx]$color = "red"
+# plot
+plot(yeast_graph2,
+     vertex.label = NA,
+     vertex.size=2)
+```
+
+```{r, echo=FALSE}
+# reset
+V(yeast_graph2)$color = "white"
+E(yeast_graph2)$color = "grey"
+E(yeast_graph2)$width = 1
+```
+
 TODO: considerazioni
 
+
+
+## Comunità
+
+Calcolo della modularità applicando 3 algoritmi di *community detection* che sono stati utilizzati in letteratura nello studio di PPINs:
+
+* [Algoritmi greedy](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9663007):
+  * Greedy optimization
+  * Louvain
+```{r, echo=FALSE}
+greedy_opt_clustering <- cluster_fast_greedy(simplify(yeast_graph2))
+modularity(greedy_opt_clustering)
+louvain_clustering <- cluster_louvain(yeast_graph2)
+modularity(louvain_clustering)
+```
+
+* [Edge betweenness](https://bmcresnotes.biomedcentral.com/articles/10.1186/1756-0500-4-569)
+```{r, echo=FALSE}
+betweenness_clustering <- cluster_edge_betweenness(yeast_graph2)
+modularity(betweenness_clustering)
+```
+
+Si ottengono modularità piuttosto simili. L'applicazione dell'algoritmo Louvain restituisce modularità maggiore. Si decide di analizzare le comunità individuate dal secondo miglior algoritmo, quello di *edge betweenness* in quanto 
+
+* deterministico
+* citato spesso in [letteratura](http://europepmc.org/article/MED/12060727)
+
+Il numero di comunità:
+```{r, echo=FALSE}
+length(betweenness_clustering)
+```
+
+La dimensione di ciascuna comunità:
+```{r, echo=FALSE}
+sizes(betweenness_clustering)
+```
+
+Il grafo:
+```{r, echo=FALSE, fig.height = 10, fig.width = 12, fig.align = "center"}
+plot(betweenness_clustering,
+     yeast_graph2, 
+     vertex.color = membership(betweenness_clustering), 
+     layout = layout_with_fr(yeast_graph2),
+     vertex.label = NA,
+     vertex.size = 3)
+```
+
+Si possono osservare un elevato numero di comunità. È possibile analizzare se le proteine appartenenti ad una comunità sono correlate anche da un punto di vista biologico utilizzando [Gene Ontology](http://geneontology.org/) (GO). GO è un progetto bioinformatico che offre annotazioni e descrizioni di geni di vari organismi. 
+
+La South Dakota State University ha sviluppato un'app in Shiny chiamata [ShinyGO](http://bioinformatics.sdstate.edu/go/). Permette, tra le varie cose, data una lista di proteine (geni), di visualizzare un grafo in cui
+
+* ogni nodo è etichettato un *GO term* (una termine dell'ontologia GO, una descrizione). Un nodo è un insieme di geni nella cui annotazione è presente il termine etichetta di quel nodo. La dimensione dei nodi è proporzionale al numero di geni; 
+* ogni arco collega tra loro i *GO term*, e il suo spessore è proporzionale alla percentuale di geni sovrapposti tra i due nodi.
+
+```{r, echo=FALSE}
+communities_decreasing <- sort(sizes(betweenness_clustering), decreasing = TRUE)
+number_greatest_community_1 <- names(communities_decreasing[1])
+number_greatest_community_2 <- names(communities_decreasing[2])
+number_greatest_community_3 <- names(communities_decreasing[3])
+```
+
+Il grafo per la comunità più grande:
+```{r, echo=FALSE}
+betweenness_clustering[number_greatest_community_1]
+```
+![](images/community-1.png)
+
+Si osservano due "sottocomunità" da un punto di vista funzionale della cellula:
+
+* In alto, processi legati a processi metabolici e di biosintesi di mono (esoso) e polisaccaridi (glicogeno)
+* In basso, processi legati alla crescita cellulare
+
+Il grafo per la seconda comunità più grande:
+```{r, echo=FALSE}
+betweenness_clustering[number_greatest_community_2]
+```
+![](images/community-2.png)
+
+Sono presenti processi legati principalmente al catabolismo.
+
+Il grafo per la terza comunità più grande:
+```{r, echo=FALSE}
+betweenness_clustering[number_greatest_community_3]
+```
+![](images/community-3.png)
+
+In questo caso si osserva un nodo etichettato con "divisione cellulare" che collega due componenti più connesse tra di loro:
+
+* In alto, processi legati alla mitosi, come la regolazione della segregazione di cromatidi fratelli, o l'assemblamento del fuso mitotico
+* In basso, processi di trasporto di proteine nel nucleo cellulare, e sua organizzazione
+
+Selezionando un certo numero di proteine in maniera casuale, non sempre si ottengono dei risultati significativi. A volte le proteine scelte casualmente interagiscono effettivamente tra di loro, producendo un grafo, altre volte no. Ad esempio, scegliendo in maniera *random* le seguenti 32 proteine 
+```{r, echo=FALSE}
+set.seed(2)
+sample(V(yeast_graph2)$name, 32)
+```
+
+si ottiene "No significant enrichment found.". Ciò significa che non è possibile descrivere l'insieme di proteine dato in input utilizzando dei *GO terms* condivisi (statisticamente) significativi. In altre parole, queste 32 proteine sono associate a termini molto diversi fra loro, oppure sono associate a termini di alto livello (es *biological process* vs *DNA repair*).
+
+TODO: considerazioni
+
+
+
+## Clustering gerarchico
+
+In biologia si utilizzano diverse (e a volte complesse) misure di similarità, ad esempio, per le proteine, eseguendo allineamenti di sequenze amminoacidiche. Si utilizza qui un'altra misura di similarità [utilizzata in questo campo](https://www.pnas.org/doi/10.1073/pnas.95.25.14863): il coefficiente di correlazione di Pearson. Si esegue un clustering gerarchico con metodo *average-linkage* per unire i gruppi.
+```{r, echo=FALSE}
+adj_matrix <- as_adjacency_matrix(yeast_graph2, 
+                         sparse = FALSE)
+pearson_sim <- cor(adj_matrix)
+hc <- hclust(as.dist(1-pearson_sim), 
+             method = "average")
+```
+
+Per confrontarlo con il metodo di individuazione di comunità precedente, si può tagliare il dendrogramma ad un'altezza che produce 24 *cluster*:
+```{r, echo=FALSE, fig.height = 14, fig.width = 10, fig.align = "center"}
+num_clust <- 24
+# get the height at which to cut to get 'num-clust' communities
+cut_height <- sort(hc$height, decreasing=TRUE)[num_clust]
+cut_height
+# plot dendrogram
+plot(as.dendrogram(hc),
+     horiz = TRUE, 
+     leaflab = "none") # no labels on leaves
+abline(v = (cut_height),
+       col = "red")
+```
+
+Si osserva come si debba tagliare in alto per ottenere il numero di gruppi desiderato.
+
+La dimensione dei gruppi:
+```{r, echo=FALSE}
+clusters <- cutree(hc, k = 24)
+table(clusters)
+```
+
+Il grafo:
+```{r, echo=FALSE, fig.height = 10, fig.width = 12, fig.align = "center"}
+plot(yeast_graph2, 
+     vertex.color = clusters, 
+     layout = layout_with_fr(yeast_graph2),
+     vertex.label = NA,
+     vertex.size = 3)
+```
+
+Confronto tra dimensioni di comunità con *edge betweenness* e dimensioni di *clusters* con la similarità di Pearson:
+```{r, echo=FALSE}
+dimensions <- matrix(c(
+  c(sort(sizes(betweenness_clustering), decreasing = TRUE)),
+  c(sort(table(clusters), decreasing = TRUE))
+  ),
+  ncol = 2)
+colnames(dimensions) <- c("communities", "clusters")
+```
+
+```{r, echo=FALSE, fig.height = 5, fig.width = 10, fig.align = "center"}
+barplot(dimensions, 
+        beside = TRUE, 
+        legend = TRUE,
+        col = rep(c(myblue, "gray"), each = 24))
+```
+
+```{r, echo=FALSE}
+summary(dimensions)
+```
+
+TODO: considerazioni
+
+
+
+---
+<div style="text-align: right"> Lara Vignotto - mat. 111794 </div>
