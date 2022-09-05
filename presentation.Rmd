@@ -22,20 +22,20 @@ myblue <- "#4b89bf" #"#5d95c6"
 
 ## Introduzione
 
-Le reti di interazione proteina-proteina (protein-protein interaction networks, o PPNIs) rappresentano attraverso dei grafi i contatti fisici tra proteine in una cellula. Sono utilizzate per:
+Le reti di interazione proteina-proteina (protein-protein interaction networks, o PPINs) rappresentano attraverso dei grafi i contatti fisici tra proteine in una cellula. Una PPIN può essere modellata da un grafo indiretto nel quale i nodi rappresentano le proteine e gli archi le interazioni. Sono utilizzate per:
 
 * differenziare la fisiologia cellulare tra stati normali e stati di malattia
 * raffinare i passaggi di pathway (vie) metabolici
 * riconoscere il ruolo di proteine non caratterizzate
 
-Date le limitazioni delle tecniche di rilevamento di interazioni proteina-proteina, i dataset disponibili sono incompleti e "rumorosi".
+Bisogna tenere conto che, date le limitazioni delle tecniche di rilevamento di interazioni proteina-proteina, i dataset disponibili sono incompleti e "rumorosi".
 
 
 
 ## Dataset
 Il [dataset](http://yfgdb.princeton.edu/cgi-bin/display.cgi?id=10688190&db=pmid) ([Uetz p., *et al.* (2000)](https://www.nature.com/articles/35001009)) si riferisce all'insieme proteine e interazioni tra esse all'interno di cellule di *S. cerevisiae*, o lievito di birra. È composto da 927 nodi (proteine) e 875 archi (interazioni).
 
-* È vero che le PPNIs posseggono le proprietà tipiche delle reti "reali" (componente gigante, effetto *small world*, distribuzione dei gradi a coda lunga)?
+* È vero che le PPINs posseggono le proprietà tipiche delle reti "reali" (componente gigante, effetto *small world*, distribuzione dei gradi a coda lunga)?
 * Qual è il significato biologico di tali proprietà? 
 * Si possono apprezzare altre caratteristiche?
 
@@ -83,8 +83,9 @@ ggraph(yeast_graph,
 ## Componente gigante
 
 ```{r, echo=FALSE}
-# select biggest subgraph
-components <- clusters(yeast_graph, mode="weak")
+# select biggest component
+components <- clusters(yeast_graph, 
+                       mode = "weak")
 biggest_cluster_id <- which.max(components$csize)
 # ids
 vert_ids <- V(yeast_graph)[components$membership == biggest_cluster_id]
@@ -118,13 +119,46 @@ Numero di nodi della componente gigante:
 gorder(yeast_graph2)
 ```
 
-TODO: considerazioni
+Si nota come la componente gigante contiene meno della metà dei nodi totali. Nonostante ciò, si può osservare come sia di gran lunga la componente più grande:
+```{r, echo=FALSE}
+# sort(sizes(components), decreasing = TRUE)
+all_components <- matrix(c(sort(sizes(components), decreasing = TRUE)),
+  ncol = 1)
+colnames(all_components) <- c("components")
+```
+
+```{r, echo=FALSE, fig.height = 5, fig.width = 10, fig.align = "center"}
+barplot(all_components,
+        main = "Components sizes",
+        ylab = "size",
+        beside = TRUE, 
+        legend = TRUE,
+        col = myblue)
+```
+
+Le prime 10 componenti più grandi:
+```{r, echo=FALSE}
+head(sort(sizes(components), decreasing = TRUE), 10)
+```
+
+Il numero totale di componenti e il numero di componenti di 1 o 2 nodi:
+```{r, echo=FALSE}
+length(sizes(components))
+sum(sizes(components) <= 2)
+```
 
 
 
 ## Degree centrality
 
-TODO: perché
+Il grado dei nodi è una misura importante perché permette di:
+
+* analizzare le caratteristiche *scale-free* della rete
+* calcolare l'assortatività
+* individuare i nodi con alto grado (*hubs*): corrispondono a proteine essenziali
+
+Il terzo punto è di particolare interesse, in quanto la [*centrality-lethality rule*](https://www.nature.com/articles/35075138) afferma che la probabilità che la rimozione di una proteina si riveli letale per la cellula è correlata al numero di interazioni della proteina stessa.
+
 ```{r, echo=FALSE}
 # calculate degrees of nodes
 degree_centrality <- degree(yeast_graph2)
@@ -146,23 +180,6 @@ mean(degree_centrality)
 La distribuzione dei gradi nel grafo:
 ```{r, echo=FALSE, fig.align = "center"}
 table(degree_centrality)
-# hist(degree_centrality,
-#      right = FALSE,
-#      main = "Degree distribution",
-#      xlab = "degree",
-#      ylab = "frequency",
-#      breaks = max(degree_centrality),
-#      col = "gray")
-# abline(v = mean(degree_centrality), 
-#        col = myblue, 
-#        lty = 3,
-#        lwd = 3)
-# legend(x = 13,
-#        y = 195,
-#        legend = c("average degree"),
-#        col = c(myblue),
-#        lty = 3,
-#        lwd = 3)
 ```
 
 Rappresentazione grafica:
@@ -229,23 +246,13 @@ head(sort(degree_centrality, decreasing = TRUE), 3)
 * [*YGL212W*](https://www.yeastgenome.org/locus/S000003180): fa parte del complesso SNARE, che permette l'aggancio dei vacuoli alle membrane cellulari.
 * [*YDR328C*](https://www.yeastgenome.org/locus/S000002736): proteina evoluzionalmente conservata presente in vari complessi cellulari. Coinvolta nell'allineamento dei cromosomi lungo il fuso mitotico durante la divisione cellulare.
 
-TODO: considerazioni
+Due delle tre proteine con più alto grado sono coinvolte nella replicazione cellulare, un processo estremamente importante. In particolare, la delezione del gene *TEM1*, corrispondente alla proteina *YML064C*, [è letale](https://www.tandfonline.com/doi/full/10.1080/21541248.2015.1109023).
 
 
 
 ## Rete *scale-free*
 
-La skewness della distribuzione dei gradi è:
-```{r, echo=FALSE}
-mean((degree_centrality - mean(degree_centrality))^3) / sd(degree_centrality)^3
-```
-
-La media e la mediana della distribuzione sono:
-```{r, echo=FALSE}
-summary(degree_centrality)
-```
-
-Istogramma della distribuzione dei gradi nel grafo:
+Se si osserva l'istogramma della distribuzione dei gradi nel grafo, si può notare come siano presenti molti nodi con grado basso, e pochi con grado alto:
 ```{r, echo=FALSE, fig.align = "center"}
 hist(degree_centrality,
      right = FALSE,
@@ -254,20 +261,28 @@ hist(degree_centrality,
      ylab = "frequency",
      breaks = max(degree_centrality),
      col = "white")
+# mean
 abline(v = mean(degree_centrality), 
-       col = "darkgray", 
-       lty = 2,
-       lwd = 4)
-abline(v = median(degree_centrality), 
        col = myblue, 
        lty = 2,
        lwd = 4)
-legend(x = 13,
-       y = 195,
-       legend = c("mean", "median"),
-       col = c("darkgray", myblue),
-       lty = c(3,3),
-       lwd = c(4,4))
+# legend
+legend(x = 16.5,
+       y = 210,
+       legend = c("mean"),
+       col = c(myblue),
+       lty = 3,
+       lwd = 4)
+```
+
+La media e la mediana della distribuzione sono:
+```{r, echo=FALSE}
+summary(degree_centrality)
+```
+
+La skewness della distribuzione dei gradi è:
+```{r, echo=FALSE}
+mean((degree_centrality - mean(degree_centrality))^3) / sd(degree_centrality)^3
 ```
 
 Si può verificare che la distribuzione dei gradi dei nodi segue una legge di potenza graficando la distribuzione stessa in scala logaritmica su entrambi gli assi. 
@@ -285,31 +300,20 @@ plot(1:max(degree_centrality),
 # fit a power law distribution to the data
 pow_law <- power.law.fit(degree_centrality)
 lines(seq(degree_dist_non_cumul), 
-      seq(degree_dist_non_cumul)^-(pow_law$alpha-1), 
+      seq(degree_dist_non_cumul/(pow_law$alpha-1))^-(pow_law$alpha-1), 
       col = myblue,
       lwd = 2)
-# fit a linear model to the data
-keep <- degree_dist_non_cumul[-1] > 0
-x <- (1:max(degree_centrality))[keep]
-y <- degree_dist_non_cumul[-1][keep]
-abline(lm(log(y)~log(x)),
-       col = "darkgray",
-       lwd = 2)
+# legend
 legend(x = 7,
        y = .5,
-       legend = c("fitted power law", "fitted linear model"),
-       col = c(myblue, "darkgray"),
+       legend = c("fitted power law"),
+       col = c(myblue),
        lwd = c(2, 2))
 ```
 
-Adattando (*fitting*) una power law alla distribuzione, si ottiene una retta (blu) con *alfa* pari a:
+Adattando (*fitting*) una power law alla distribuzione, si ottiene una retta con *alfa* pari a:
 ```{r, echo=FALSE}
 pow_law$alpha
-```
-
-Mentre, applicando una semplice regressione lineare sui dati, si ottiene un'altra retta (grigia) la cui intercetta è:
-```{r, echo=FALSE}
-coef( lm(log(y)~log(x)) )[2]
 ```
 
 Grafico non logaritmico della distribuzione dei gradi e della legge di potenza adattata ai dati:
@@ -321,10 +325,12 @@ plot(1:max(degree_centrality),
      xlab = "degree",
      ylab = "probability",
      lwd = 2)
+# power law
 lines(seq(degree_dist_non_cumul),
-      seq(degree_dist_non_cumul)^-(pow_law$alpha-1), 
+      seq(degree_dist_non_cumul/(pow_law$alpha-1))^-(pow_law$alpha-1), 
       col = myblue,
       lwd = 2)
+# legend
 legend(x = 13.5,
        y = .5,
        legend = c("degree distribution", "fitted power law"),
@@ -344,23 +350,9 @@ plot(1:max(degree_centrality),
      type = "l",
      log = "xy",
      lwd = 2)
-# lines(seq(degree_dist_cumul), 
-#       seq(degree_dist_cumul)^-(pow_law$alpha-1), 
-#       col = myblue,
-#       lwd = 2)
-# 
-# x <- 1:max(degree_centrality)
-# y <- degree_dist_cumul[-1]
-# abline(lm(log(y)~log(x)))
-# 
-# legend(x = 8,
-#        y = 1,
-#        legend = c("fitted power law"),
-#        col = c(myblue),
-#        lwd = 2)
 ```
 
-TODO: considerazioni
+È stato misurato che processi biologici come mutazioni e duplicazioni di geni portano ad un [incemento di grado preferenziale verso proteine altamente connesse](https://journals.biologists.com/jcs/article/118/21/4947/28519/Scale-free-networks-in-cell-biology).
 
 
 
@@ -387,9 +379,7 @@ for (protein in names(top_3_degree)){
 }
 ```
 
-Nelle PPINs i nodi con grado più alto sono raramente collegati ad altri nodi con grado alto. [Questo fenomeno](https://cse.buffalo.edu/DBGROUP/bioinformatics/papers/chuan.pdf) è in contrasto con ciò che accade nelle reti sociali. 
-
-TODO: considerazioni
+Nelle PPINs i nodi con grado più alto sono raramente collegati ad altri nodi con grado alto. [Questo fenomeno](https://cse.buffalo.edu/DBGROUP/bioinformatics/papers/chuan.pdf) è in contrasto con ciò che accade nelle reti sociali.
 
 
 
@@ -501,7 +491,7 @@ E(yeast_graph2)$color = "grey"
 E(yeast_graph2)$width = 1
 ```
 
-TODO: considerazioni
+[È stato ipotizzato](https://pubmed.ncbi.nlm.nih.gov/11522199/) che la caratteristica *small-world* delle PPINs potrebbe permettere una reazione rapida alle perturbazioni del metabolismo cellulare.
 
 
 
@@ -602,13 +592,11 @@ sample(V(yeast_graph2)$name, 32)
 
 si ottiene "No significant enrichment found.". Ciò significa che non è possibile descrivere l'insieme di proteine dato in input utilizzando dei *GO terms* condivisi (statisticamente) significativi. In altre parole, queste 32 proteine sono associate a termini molto diversi fra loro, oppure sono associate a termini di alto livello (es *biological process* vs *DNA repair*).
 
-TODO: considerazioni
-
 
 
 ## Clustering gerarchico
 
-In biologia si utilizzano diverse (e a volte complesse) misure di similarità, ad esempio, per le proteine, eseguendo allineamenti di sequenze amminoacidiche. Si utilizza qui un'altra misura di similarità [utilizzata in questo campo](https://www.pnas.org/doi/10.1073/pnas.95.25.14863): il coefficiente di correlazione di Pearson. Si esegue un clustering gerarchico con metodo *average-linkage* per unire i gruppi.
+In biologia si utilizzano diverse (e a volte complesse) misure di similarità, ad esempio, per le proteine, eseguendo allineamenti di sequenze amminoacidiche. Una misura di similarità spesso [utilizzata in questo campo](https://www.pnas.org/doi/10.1073/pnas.95.25.14863) è il coefficiente di correlazione di Pearson. Si esegue un clustering gerarchico con metodo *average-linkage* per unire i gruppi.
 ```{r, echo=FALSE}
 adj_matrix <- as_adjacency_matrix(yeast_graph2, 
                          sparse = FALSE)
@@ -669,7 +657,7 @@ barplot(dimensions,
 summary(dimensions)
 ```
 
-TODO: considerazioni
+Si potrebbe ipotizzare che, in questo caso, una ricerca di comunità basata sulla *edge betweenness* sia migliore di un clustering gerarchico. La prima, infatti, oltre a restituire automaticamente un numero di comunità, ne crea di dimensioni più omogenee. Questo potrebbe avere un significato biologico maggiore: è difficile, ad esempio, assegnare una descrizione funzionale soddisfacente a gruppi di proteine/geni molto piccoli.
 
 
 
