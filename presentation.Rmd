@@ -22,10 +22,10 @@ myblue <- "#4b89bf" #"#5d95c6"
 
 ## Introduzione
 
-Le reti di interazione proteina-proteina (protein-protein interaction networks, o PPINs) rappresentano attraverso dei grafi i contatti fisici tra proteine in una cellula. Una PPIN può essere modellata da un grafo indiretto nel quale i nodi rappresentano le proteine e gli archi le interazioni. Sono utilizzate per:
+Le reti di interazione proteina-proteina (*protein-protein interaction networks*, o PPINs) rappresentano attraverso dei grafi i contatti fisici tra proteine in una cellula. Una PPIN può essere modellata da un grafo indiretto nel quale i nodi rappresentano le proteine e gli archi le interazioni. Sono utilizzate per:
 
 * differenziare la fisiologia cellulare tra stati normali e stati di malattia
-* raffinare i passaggi di pathway (vie) metabolici
+* raffinare i passaggi di *pathway* (vie) metabolici
 * riconoscere il ruolo di proteine non caratterizzate
 
 Bisogna tenere conto che, date le limitazioni delle tecniche di rilevamento di interazioni proteina-proteina, i dataset disponibili sono incompleti e "rumorosi".
@@ -50,7 +50,9 @@ yeast_interactome <- read.csv(file = file,
                               header = FALSE,
                               sep = "\t",
                               col.names = c("INTERACTOR_A", "INTERACTOR_B", "OFFICIAL_SYMBOL_FOR_A", "OFFICIAL_SYMBOL_FOR_B", "ALIASES_FOR_A", "ALIASES_FOR_B", "EXPERIMENTAL_SYSTEM", "SOURCE", "PUBMED_ID", "ORGANISM_A_ID", "ORGANISM_B_ID"))
-head(yeast_interactome)
+
+dim(yeast_interactome)
+head(yeast_interactome, 4)
 ```
 
 ```{r, echo=FALSE}
@@ -141,10 +143,10 @@ Le prime 10 componenti più grandi:
 head(sort(sizes(components), decreasing = TRUE), 10)
 ```
 
-Il numero totale di componenti e il numero di componenti di 1 o 2 nodi:
+Il numero totale di componenti e il numero di componenti di 1, 2 o 3 nodi:
 ```{r, echo=FALSE}
 length(sizes(components))
-sum(sizes(components) <= 2)
+sum(sizes(components) <= 3)
 ```
 
 
@@ -248,11 +250,15 @@ head(sort(degree_centrality, decreasing = TRUE), 3)
 
 Due delle tre proteine con più alto grado sono coinvolte nella replicazione cellulare, un processo estremamente importante. In particolare, la delezione del gene *TEM1*, corrispondente alla proteina *YML064C*, [è letale](https://www.tandfonline.com/doi/full/10.1080/21541248.2015.1109023).
 
+È vero anche il contrario, ovvero che proteine con grado basso sono meno essenziali? Secondo lo stesso studio sulla *centrality-lethality rule*, sì:
+<center>
+![](images/centrality-lethality.png)
+</center>
 
 
 ## Rete *scale-free*
 
-Se si osserva l'istogramma della distribuzione dei gradi nel grafo, si può notare come siano presenti molti nodi con grado basso, e pochi con grado alto:
+Se si osserva l'istogramma della distribuzione dei gradi nella rete, si può notare come siano presenti molti nodi con grado basso, e pochi con grado alto:
 ```{r, echo=FALSE, fig.align = "center"}
 hist(degree_centrality,
      right = FALSE,
@@ -263,16 +269,21 @@ hist(degree_centrality,
      col = "white")
 # mean
 abline(v = mean(degree_centrality), 
+       col = "darkgray", 
+       lty = 2,
+       lwd = 4)
+# median
+abline(v = median(degree_centrality), 
        col = myblue, 
        lty = 2,
        lwd = 4)
 # legend
 legend(x = 16.5,
        y = 210,
-       legend = c("mean"),
-       col = c(myblue),
-       lty = 3,
-       lwd = 4)
+       legend = c("mean", "median"),
+       col = c("darkgray", myblue),
+       lty = c(3,3),
+       lwd = c(4,4))
 ```
 
 La media e la mediana della distribuzione sono:
@@ -280,12 +291,12 @@ La media e la mediana della distribuzione sono:
 summary(degree_centrality)
 ```
 
-La skewness della distribuzione dei gradi è:
+La *skewness* della distribuzione dei gradi è:
 ```{r, echo=FALSE}
 mean((degree_centrality - mean(degree_centrality))^3) / sd(degree_centrality)^3
 ```
 
-Si può verificare che la distribuzione dei gradi dei nodi segue una legge di potenza graficando la distribuzione stessa in scala logaritmica su entrambi gli assi. 
+Si può verificare se la distribuzione dei gradi dei nodi segue una legge di potenza graficando la distribuzione stessa in scala logaritmica su entrambi gli assi. 
 ```{r, echo=FALSE, fig.align = "center", warning=FALSE}
 degree_dist_non_cumul <- degree_distribution(yeast_graph2,
                                              cumulative = FALSE)
@@ -558,7 +569,9 @@ Il grafo per la comunità più grande:
 ```{r, echo=FALSE}
 betweenness_clustering[number_greatest_community_1]
 ```
+<center>
 ![](images/community-1.png)
+</center>
 
 Si osservano due "sottocomunità" da un punto di vista funzionale della cellula:
 
@@ -569,7 +582,9 @@ Il grafo per la seconda comunità più grande:
 ```{r, echo=FALSE}
 betweenness_clustering[number_greatest_community_2]
 ```
+<center>
 ![](images/community-2.png)
+</center>
 
 Sono presenti processi legati principalmente al catabolismo.
 
@@ -577,7 +592,9 @@ Il grafo per la terza comunità più grande:
 ```{r, echo=FALSE}
 betweenness_clustering[number_greatest_community_3]
 ```
+<center>
 ![](images/community-3.png)
+</center>
 
 In questo caso si osserva un nodo etichettato con "divisione cellulare" che collega due componenti più connesse tra di loro:
 
@@ -658,6 +675,14 @@ summary(dimensions)
 ```
 
 Si potrebbe ipotizzare che, in questo caso, una ricerca di comunità basata sulla *edge betweenness* sia migliore di un clustering gerarchico. La prima, infatti, oltre a restituire automaticamente un numero di comunità, ne crea di dimensioni più omogenee. Questo potrebbe avere un significato biologico maggiore: è difficile, ad esempio, assegnare una descrizione funzionale soddisfacente a gruppi di proteine/geni molto piccoli.
+
+
+
+## Conclusioni e accorgimenti
+
+È stato possibile analizzare una rete di interazioni tra proteine, e individuare e misurare alcune delle sue caratteristiche. Molte delle proprietà ricercate sono state effettivamente verificate, ed è stato possibile trovare riscontri, anche sul loro significato biologico, in letteratura.
+
+[Un interessante studio](https://pubs.rsc.org/en/content/articlehtml/2009/mb/b908681a) ha analizzato diverse reti biologiche, e ha voluto "sfatare dei miti" riguardo ad alcune loro caratteristiche. Questo ci deve ricordare come è sempre necessario prestare molta attenzione allo studio e alla rappresentazione dei dati.
 
 
 
