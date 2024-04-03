@@ -2,7 +2,7 @@
 
 ---
 
-## Project for the Advanced Data Science Exam
+### Project for the Advanced Data Science course at UNIUD
 
 Analysis in R of the *S. cerevisiae* protein-protein interaction network (in Italian).
 
